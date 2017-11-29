@@ -1,0 +1,136 @@
+package org.usfirst.frc.team6763.robot;
+
+import edu.wpi.first.wpilibj.CameraServer;
+import edu.wpi.first.wpilibj.DigitalInput;
+import edu.wpi.first.wpilibj.Encoder;
+//Imports the other files needed by the program
+import edu.wpi.first.wpilibj.IterativeRobot;
+import edu.wpi.first.wpilibj.Jaguar;
+import edu.wpi.first.wpilibj.Joystick;
+import edu.wpi.first.wpilibj.RobotDrive;
+import edu.wpi.first.wpilibj.Spark;
+import edu.wpi.first.wpilibj.SpeedController;
+import edu.wpi.first.wpilibj.Talon;
+import edu.wpi.first.wpilibj.livewindow.LiveWindow;
+import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.wpilibj.Timer;
+import edu.wpi.first.wpilibj.Victor;
+import edu.wpi.first.wpilibj.buttons.Button;
+import edu.wpi.first.wpilibj.buttons.JoystickButton;
+import edu.wpi.first.wpilibj.command.Command;
+
+/*
+ THIS CODE IS FOR THE CENTER PEG
+*/
+
+public class Robot extends IterativeRobot {
+	
+	RobotDrive myRobot = new RobotDrive(0, 2);
+	Joystick stick = new Joystick(0);
+	Timer timer = new Timer();
+	Jaguar ArmMotor = new Jaguar(9);
+	SpeedController Climber = new Spark(7);
+	Joystick mXboxController = new Joystick(1);
+	
+	//SendableChooser
+	
+	Encoder rightEncoder; // Right Side Encoder
+	Encoder leftEncoder; // Left Side Encoder
+	
+	float TicksPerInch = 108.333333F; // Number of Encoder Ticks per Inch
+	int InchesPerFoot = 12; 
+	
+	double leftPower = 0.475;
+	double rightPower = 0.5;
+	double error = 0.0;
+	double kp = 0.05;
+	double maxEncoderError = TicksPerInch * 85;
+	
+	@Override
+	public void robotInit() {
+		rightEncoder = new Encoder(2, 3);
+    	rightEncoder.setReverseDirection(true);
+    	leftEncoder = new Encoder (0, 1);
+    	leftEncoder.setReverseDirection(false);
+    	CameraServer.getInstance().startAutomaticCapture();
+    	
+    	
+	}
+
+	@Override
+	public void autonomousInit() {
+		timer.reset();
+		timer.start();
+		System.out.println("Master Count,Slave Count,Error,KP,MasterPower,SlavePower");
+		leftEncoder.reset();
+		rightEncoder.reset();
+	}
+	
+	@Override
+	public void autonomousPeriodic() {
+		/*
+		THIS IS FOR THE CENTER PEG
+		*/
+		
+		
+		ArmMotor.set(0.12);
+		
+		if (leftEncoder.get() < (TicksPerInch * 76)) {
+			leftPower = -0.53;
+			rightPower = -0.5;
+			error = leftEncoder.get() - rightEncoder.get();
+			
+			if (error > 50){
+				leftPower = -0.52;
+			}
+			else if (error < -50){
+				leftPower = -0.54;
+			}
+			else if (error > -50 && error < 50){
+				leftPower = -0.53;
+			}
+			
+		}
+		else {
+			leftPower = 0;
+			rightPower = 0;
+		}
+			
+		myRobot.tankDrive(leftPower, rightPower);
+		
+		System.out.println(leftEncoder.get() + " , " + rightEncoder.get() + " , " + error);
+		
+		
+		//System.out.println(leftEncoder.get() + "," + rightEncoder.get() + "," + error + "," + kp + "," + leftPower + "," + rightPower);
+		//System.out.println(leftEncoder.get() + "," + rightEncoder.get());
+	}
+		
+	@Override
+	public void teleopInit() {
+	}
+	
+	@Override
+	public void teleopPeriodic() {
+		myRobot.arcadeDrive(mXboxController);
+		if (mXboxController.getRawAxis(5) > 0){
+			Climber.set(0);
+		}
+		else{
+			Climber.set(mXboxController.getRawAxis(5));
+		}
+		ArmMotor.set(stick.getRawAxis(1)*.13*-1);
+	}
+	
+
+	@Override
+	public void testPeriodic() {
+		LiveWindow.run();
+	}
+	
+	public void disabledPeriodic(){
+		 System.out.println("RightEncoder (slave) = " + rightEncoder.get());
+		 System.out.println("LeftEncoder (master) = " + leftEncoder.get());
+		//System.out.println(leftEncoder.get() + " , " + rightEncoder.get());
+	 }
+}
